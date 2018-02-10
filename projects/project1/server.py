@@ -2,10 +2,8 @@ import SocketServer
 import sys
 
 class ChatServerHandler(SocketServer.BaseRequestHandler):
-	run = None
 	def __init__(self, request, clientAddr, server):
 		SocketServer.BaseRequestHandler.__init__(self, request, clientAddr, server)
-		self.run = True
 		return
 
 	def setup(self):
@@ -14,8 +12,6 @@ class ChatServerHandler(SocketServer.BaseRequestHandler):
 
 	def handle(self):
 		data = self.request.recv(512)
-		if (data == "\\quit"):
-			self.run = False
 		print data
 		return
 
@@ -58,9 +54,10 @@ class ChatServer(SocketServer.TCPServer):
 if __name__ == '__main__':
 	import socket
 	import threading
+	import readPort
 
 	# get port from kernel
-	address = ('localhost', 30069)
+	address = ('localhost', readPort.getPort(True))
 	server = ChatServer(address, ChatServerHandler)
 	ip, port = server.server_address
 	print ip
@@ -73,8 +70,6 @@ if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.connect((ip, port))
 
-	message = "\\quit"
-	lsent = s.send(message)
-
-	response = s.recv(lsent)
-	print response
+	while True:
+		response = s.recv(512)
+		print response
