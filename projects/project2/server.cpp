@@ -1,9 +1,13 @@
+/* Brock Smedley 2018 */
+
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
 #define FAILURE 1337
 
 
@@ -85,6 +89,51 @@ void cleanup(int sock){
 }
 
 
+char* ls(){
+  DIR *dirp;
+  struct dirent *ep;
+  static char out[1024];
+
+  dirp = opendir("./files/");
+  if (dirp){
+    while (ep = readdir(dirp)){
+      strcat(out, ep->d_name);
+      strcat(out, "\n");
+    }
+    (void) closedir (dirp);
+  }
+  else
+    perror("directory listing failed");
+
+  return out;
+}
+
+char* filedata(char* filename){
+  char mfn[128];
+  strcpy(mfn, "./files/");
+  strcat(mfn, filename);
+  printf("%s\n", filename);
+  FILE *fp = fopen(mfn, "r");
+  static char out[1024];
+
+
+  if (fp){
+    fgets(out, 1024, fp);
+  }
+  else{
+    perror("file open failure");
+    exit(FAILURE);
+  }
+
+  return out;
+}
+
+void erase(char* s){
+  int n = strlen(s);
+  for (int m = 0; m < n; m++)
+    s[m] = '\0';
+}
+
 int main(int argc, char** const argv){
   // will hold info about server/port
   struct sockaddr_in address;
@@ -111,6 +160,8 @@ int main(int argc, char** const argv){
     char sport[16];
     char cmd[16];
     char filename[16];
+    char out[1024];
+    bool sendfile = false;
     
     // connect to socket and start server
     int sock = initSock(port, &address);
@@ -120,9 +171,7 @@ int main(int argc, char** const argv){
     do {
       // read data from accepted connection
       int n = strlen(buff);
-      for (int m = 0; m < n; m++)
-	buff[m] = '\0';
-      
+      erase(buff);      
       msg = read(servesock, buff, 64);
       printf("Reply from client: %s\n", buff);
       if (strcmp(buff, "0x0") == 0)
@@ -131,15 +180,23 @@ int main(int argc, char** const argv){
       send(servesock, "OK", strlen("OK"), 0);
       printf("sent OK to client\n");
       
-      if (i == 0){
+      if (i == 0){ // command set
 	strncpy(cmd, buff, strlen(buff));
-	printf("buffer : %s\n", buff);
 	printf("command: %s\n", cmd);
+	if (! strcmp(cmd, "-l"))
+	  strcpy(out, ls());
+	else if (! strcmp(cmd, "-g")){
+	  sendfile = true;
+	}
       }
-      else if (i == 1){
+      else if (i == 1){ // filename set
 	strncpy(filename, buff, strlen(buff));
+	if (sendfile){
+	  erase(out);
+	  strcat(out, filedata(filename));
+	}
       }
-      else if (i == 2){
+      else if (i == 2){ // port set
 	strncpy(sport, buff, strlen(buff));
       }
 
@@ -157,14 +214,11 @@ int main(int argc, char** const argv){
     int dssock = serve(datasock, &address);
 
 
-    int j = 20, h = 0;
-    while (h < j){
+    bool data_queued = false;
+    do{
       // send client the data
-      send(dssock, "message", strlen("message"), 0);
-      h++;
-      //send(servesock, sport, strlen(sport), 0);
-      //printf("Replied to client\n");
-    }
+      send(dssock, out, strlen(out), 0);
+    } while (data_queued);
 
     /// end of file transfer
     cleanup(sock);
@@ -176,3 +230,7 @@ int main(int argc, char** const argv){
   printf("Program \"%s\" finished successfully.\n", (argv[0]));
   return 0;
 }
+
+// thanks to http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html
+// and https://www.geeksforgeeks.org/socket-programming-cc/
+// for the boilerplate code

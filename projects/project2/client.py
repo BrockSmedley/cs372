@@ -1,3 +1,5 @@
+# Brock Smedley 2018
+
 import socket
 import sys
 import time
@@ -51,3 +53,6 @@ def main():
   csock.close()
 
 main()
+
+# thanks to https://stackoverflow.com/questions/27241804/sending-a-file-over-tcp-sockets-in-python
+# for the boilerplate code
