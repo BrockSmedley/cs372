@@ -107,19 +107,70 @@ int main(int argc, char** const argv){
  
 
   while (1){
-    // get connected socket & start serving to the network
+    int dport;
+    char sport[16];
+    char cmd[16];
+    char filename[16];
+    
+    // connect to socket and start server
     int sock = initSock(port, &address);
     int servesock = serve(sock, &address);
+    char* argz[4000];
+    int i = 0;
+    do {
+      // read data from accepted connection
+      int n = strlen(buff);
+      for (int m = 0; m < n; m++)
+	buff[m] = '\0';
+      
+      msg = read(servesock, buff, 64);
+      printf("Reply from client: %s\n", buff);
+      if (strcmp(buff, "0x0") == 0)
+	break;
+      // send confirmation reply
+      send(servesock, "OK", strlen("OK"), 0);
+      printf("sent OK to client\n");
+      
+      if (i == 0){
+	strncpy(cmd, buff, strlen(buff));
+	printf("buffer : %s\n", buff);
+	printf("command: %s\n", cmd);
+      }
+      else if (i == 1){
+	strncpy(filename, buff, strlen(buff));
+      }
+      else if (i == 2){
+	strncpy(sport, buff, strlen(buff));
+      }
 
-    
-    // read data from accepted connection
-    msg = read(servesock, buff, 512);
-    printf("Reply from client: %s\n", buff);
-    send(servesock, howdy, strlen(howdy), 0);
-    printf("Replied to client\n");
+      i++;
+    } while (true);
+    dport = atoi(sport);
 
+    printf("command: %s\n", cmd);
+    printf("filename: %s \n", filename);
+    printf("port: %s \n", sport);
     
+
+
+    int datasock = initSock(dport, &address);
+    int dssock = serve(datasock, &address);
+
+
+    int j = 20, h = 0;
+    while (h < j){
+      // send client the data
+      send(dssock, "message", strlen("message"), 0);
+      h++;
+      //send(servesock, sport, strlen(sport), 0);
+      //printf("Replied to client\n");
+    }
+
+    /// end of file transfer
     cleanup(sock);
+    cleanup(servesock);
+    cleanup(datasock);
+    cleanup(dssock);
   }
 
   printf("Program \"%s\" finished successfully.\n", (argv[0]));

@@ -1,6 +1,6 @@
 import socket
 import sys
-
+import time
 
 def main():
   args = len(sys.argv)
@@ -24,9 +24,30 @@ def main():
 
   csock = socket.socket()
   csock.connect(('', int(server_port)))
+  payload = [command, filename, data_port]
 
-  csock.send("Howdy, server.");
-  print "Reply from server: ", csock.recv(1024)
+  for i in payload: 
+    csock.send(i)
+    print "Reply from server: " + str(csock.recv(256))
+  
+  # send termination code
+  csock.send("0x0");
 
+  time.sleep(0.1)
+  
+  # open new connection to download data
+  dsock = socket.socket()
+  dsock.connect(('', int(data_port)))
+  # no payload this time
+
+  while (1):
+    msg = dsock.recv(1024)
+    if (msg):
+      print("%s " % msg)
+    else:
+      break
+
+
+  csock.close()
 
 main()
