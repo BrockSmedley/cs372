@@ -4,7 +4,7 @@ import sys
 
 def main():
   args = len(sys.argv)
-  print args
+  #print args
 
   argnames = ["server_host", "server_port", "command", "filename", "data_port"]
 
@@ -24,5 +24,9 @@ def main():
 
   csock = socket.socket()
   csock.connect(('', int(server_port)))
+
+  csock.send("Howdy, server.");
+  print "Reply from server: ", csock.recv(1024)
+
 
 main()

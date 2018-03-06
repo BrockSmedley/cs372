@@ -106,19 +106,21 @@ int main(int argc, char** const argv){
     printf("Starting server on port %d\n", port);
  
 
-  // get connected socket & start serving to the network
-  int sock = initSock(port, &address);
-  int servesock = serve(sock, &address);
+  while (1){
+    // get connected socket & start serving to the network
+    int sock = initSock(port, &address);
+    int servesock = serve(sock, &address);
 
-  
-  // read data from accepted connection
-  msg = read(servesock, buff, 512);
-  printf("%s\n", buff);
-  send(servesock, howdy, strlen(howdy), 0);
-  printf("Replied to client\n");
+    
+    // read data from accepted connection
+    msg = read(servesock, buff, 512);
+    printf("Reply from client: %s\n", buff);
+    send(servesock, howdy, strlen(howdy), 0);
+    printf("Replied to client\n");
 
-  
-  cleanup(sock);
+    
+    cleanup(sock);
+  }
 
   printf("Program \"%s\" finished successfully.\n", (argv[0]));
   return 0;
