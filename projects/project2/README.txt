@@ -22,4 +22,4 @@ $	./client <host> <port> <command> [filename] <data_port>
 # On the client host flip2
 	$ make
 	$ ./client flip1 5666 -l 5777
-	$ ./client flip1 5666 -g lorem.txt 5777
+	$ ./client flip1 5666 -g data.txt 5777
