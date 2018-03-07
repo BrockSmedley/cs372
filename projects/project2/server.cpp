@@ -189,9 +189,7 @@ int main(int argc, char** const argv){
       }
       else if (i == 1){ // filename set
 	strncpy(filename, buff, strlen(buff));
-	if (sendfile){
-	  //erase(out, strlen(out));
-	}
+	
       }
       else if (i == 2){ // port set
 	strncpy(sport, buff, strlen(buff));
@@ -213,10 +211,16 @@ int main(int argc, char** const argv){
     int lsent;
 
     if (sendfile){
-      // while we can read data from the file
-      while ((lsent = fread(out, sizeof(char), 1024, fp)) > 0){
-	// send it
-	send(dssock, out, strlen(out), 0);
+      if(!fp) {
+	// file does not exist
+	send(dssock, "0xERR", 5, 0);
+      }
+      else{
+	// while we can read data from the file
+	while ((lsent = fread(out, sizeof(char), 1024, fp)) > 0){
+	  // send it
+	  send(dssock, out, strlen(out), 0);
+	}
       }
     }
     else{

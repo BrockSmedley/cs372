@@ -1,8 +1,14 @@
 # Brock Smedley 2018
 
+import os
 import socket
 import sys
 import time
+
+def writefile(filename, data):
+  fp = open(filename, "w+")
+  fp.write(data)
+  fp.close()
 
 def main():
   args = len(sys.argv)
@@ -10,19 +16,26 @@ def main():
 
   argnames = ["server_host", "server_port", "command", "filename", "data_port"]
 
-  if (args < 6):
+  if (args < 5):
     print "invalid arguments:\nhave %s\nmissing %s" % (argnames[:args-1], argnames[(args-1):])
     exit(420)
 
   server_host 	= sys.argv[1]
   server_port 	= sys.argv[2]
   command	= sys.argv[3]
-  filename	= sys.argv[4]
-  data_port	= sys.argv[5]
+  if command == "-l":
+    filename  = "00"
+    data_port = sys.argv[4]
+  else:
+    filename	= sys.argv[4]
+    data_port	= sys.argv[5]
+    if (os.path.exists(filename)):
+      print "File with that name already exists in this directory..."
+      exit(69)
+      
 
   #host = socket.gethostname()
-  host = "client"
-  print "%s opening control connection on port %s" % (host, server_port)
+  print "opening control connection on port %s" % (server_port)
 
   csock = socket.socket()
   csock.connect(('', int(server_port)))
@@ -35,6 +48,7 @@ def main():
   # send termination code
   csock.send("0x0");
 
+  # hax
   time.sleep(0.1)
   
   # open new connection to download data
@@ -45,7 +59,10 @@ def main():
   while (1):
     msg = dsock.recv(1024)
     if (msg):
-      print("%s " % msg)
+      if (msg == "0xERR"):
+	print("ERROR: File does not exist on server.\n")
+      elif (not os.path.exists(filename)):
+	writefile(filename, msg)
     else:
       break
 
