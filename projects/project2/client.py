@@ -5,10 +5,14 @@ import socket
 import sys
 import time
 
-def writefile(filename, data):
+MSGSIZE = 512
+
+def writefp(filename):
   fp = open(filename, "w+")
+  return fp
+
+def writefile(fp, data):
   fp.write(data)
-  fp.close()
 
 def main():
   args = len(sys.argv)
@@ -24,7 +28,7 @@ def main():
       filename  = "0"
       data_port = sys.argv[4]
     else:
-      print "Invalid argumentsss"
+      print "Invalid arguments"
       exit(420)
   elif sys.argv[3] == "-g":
     filename	= sys.argv[4]
@@ -43,35 +47,39 @@ def main():
     exit(69)
       
 
-  #host = socket.gethostname()
+  host = socket.gethostname()
   print "opening control connection on port %s" % (server_port)
 
   csock = socket.socket()
   csock.connect((server_host, int(server_port)))
-  payload = [command, filename, data_port]
+  payload = [command, filename, data_port, host]
 
   for i in payload: 
     csock.send(i)
-    print "Reply from server: " + str(csock.recv(256))
+    print "Reply from server: " + str(csock.recv(MSGSIZE))
   
   # send termination code
   csock.send("0x0");
 
   # hax
-  time.sleep(0.1)
+  time.sleep(0.15)
   
   # open new connection to download data
   dsock = socket.socket()
   dsock.connect((server_host, int(data_port)))
   # no payload this time
 
+  if (not os.path.exists(filename)):
+    fp = writefp(filename)
+  
   while (1):
-    msg = dsock.recv(1024)
+    msg = dsock.recv(MSGSIZE)
     if (msg):
       if (msg == "0xERR"):
 	print "ERROR: File does not exist on server.\n"
-      elif (command == "-g" and not os.path.exists(filename)):
-	writefile(filename, msg)
+      elif (command == "-g"):
+	print "downloading %s..." % filename
+	writefile(fp, msg)
       else:
 	print msg
     else:
@@ -79,6 +87,7 @@ def main():
 
 
   csock.close()
+  print "Done!"
 
 main()
 

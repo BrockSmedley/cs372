@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #define FAILURE 1337
-
+#define MSGSIZE 512
 
 int initAddress(int port, sockaddr_in *address){
 
@@ -59,23 +59,21 @@ int initSock(int port, struct sockaddr_in *address){
 int serve(int sock, struct sockaddr_in *address){
   int listensock;
   int l = sizeof(*address);
-  printf("addrlen: %d\n", l);
 
   // listen(): waits for client to connect
   if (listen(sock, 1) < 0){
     perror("listen failure");
     exit(FAILURE);
   }
-  else
-    printf("socket %d listening.\n", (listensock));
 
   // accept(): accepts a valid connection
   if ((listensock = accept(sock, (struct sockaddr *)&(*address), (socklen_t*)&l)) < 0){
     perror("accept failure");
     exit(FAILURE);
   }
-  else
-    printf("accepting connection on socket %d\n", (listensock));
+  else{
+    //printf("accepting connection on socket %d\n", (listensock));
+  }
 
 
   
@@ -90,7 +88,6 @@ void cleanup(int sock){
 
 
 void erase(char* s, int size){
-  printf ("erasing buff\n");
   memset(s, 0, size*sizeof(*s));
 }
 
@@ -98,7 +95,7 @@ void erase(char* s, int size){
 char* ls(){
   DIR *dirp;
   struct dirent *ep;
-  static char out[1024];
+  static char out[MSGSIZE];
 
   dirp = opendir("./files/");
   if (dirp){
@@ -116,7 +113,7 @@ char* ls(){
 
 // returns an open file pointer
 FILE* filep(char* filename){
-  char mfn[128];
+  char mfn[MSGSIZE];
   strcpy(mfn, "./files/");
   strcat(mfn, filename);
   //printf("%s\n", filename);
@@ -130,9 +127,9 @@ int main(int argc, char** const argv){
   // will hold info about server/port
   struct sockaddr_in address;
   int msg;
-  char buff[512] = {0};
+  char buff[MSGSIZE] = {0};
   char *howdy = "Howdy, client.";
-  static char lsl[1024] = {0};
+  static char lsl[MSGSIZE] = {0};
 
   if (! argv[1]){
     printf("missing port argument\n");
@@ -151,31 +148,34 @@ int main(int argc, char** const argv){
   // MAIN SEND-IT LOOP ------------------------------
   while (1){
     int dport;
-    char sport[16];
-    char cmd[16];
-    char filename[16];
-    char out[1024];
+    char sport[MSGSIZE];
+    char cmd[MSGSIZE];
+    char filename[MSGSIZE];
+    char clientname[MSGSIZE];
+    char out[MSGSIZE];
     bool sendfile = false;
     
     // connect to socket and start server
     int sock = initSock(port, &address);
     int servesock = serve(sock, &address);
+
+
     int i = 0;
     do {
       // read data from accepted connection
       int n = strlen(buff);
       erase(buff, strlen(buff));      
-      msg = read(servesock, buff, 64);
-      printf("Reply from client: %s\n", buff);
+      msg = read(servesock, buff, MSGSIZE);
+      //printf("incoming data: %s\n", buff);
       if (strcmp(buff, "0x0") == 0)
 	break;
       // send confirmation reply
       send(servesock, "OK", strlen("OK"), 0);
-      printf("sent OK to client\n");
+      //printf("sent OK to client\n");
       
       if (i == 0){ // command set
 	strncpy(cmd, buff, strlen(buff));
-	printf("command: %s\n", cmd);
+	//printf("command: %s\n", cmd);
 	if (! strcmp(cmd, "-l")){
 	  //erase(out, sizeof(out));
 	  //strcpy(out, ls());
@@ -194,16 +194,24 @@ int main(int argc, char** const argv){
       else if (i == 2){ // port set
 	strncpy(sport, buff, strlen(buff));
       }
+      else if (i == 3){ // hostname set
+	strncpy(clientname, buff, strlen(buff));
+      }
 
       i++;
     } while (true);
     dport = atoi(sport);
 
+    printf("connected to %s\n", clientname);
+    
+    printf("REQUEST:\n");
     printf("command: %s\n", cmd);
     printf("filename: %s \n", filename);
     printf("data port: %s \n", sport);
+
     
 
+    printf("Connecting to data port %s\n", sport);
     // Connect to client on data port
     int datasock = initSock(dport, &address);
     int dssock = serve(datasock, &address);
@@ -213,14 +221,17 @@ int main(int argc, char** const argv){
     if (sendfile){
       if(!fp) {
 	// file does not exist
-	send(dssock, "0xERR", 5, 0);
+	printf("client requested non-existent file, sent ERR\n");
+	send(dssock, "0xERR", strlen("0xERR"), 0);
       }
       else{
 	// while we can read data from the file
-	while ((lsent = fread(out, sizeof(char), 1024, fp)) > 0){
+	while ((lsent = fread(out, sizeof(char), MSGSIZE, fp)) > 0){
 	  // send it
+	  printf("sending %s...\n", filename);
 	  send(dssock, out, strlen(out), 0);
 	}
+	printf("file %s sent.\n", filename);
       }
     }
     else{
@@ -238,6 +249,8 @@ int main(int argc, char** const argv){
     cleanup(servesock);
     cleanup(datasock);
     cleanup(dssock);
+
+    printf("Accepting new connections on port %d\n", port);
   }
 
   printf("Program \"%s\" finished successfully.\n", (argv[0]));
