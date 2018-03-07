@@ -89,6 +89,12 @@ void cleanup(int sock){
 }
 
 
+void erase(char* s, int size){
+  printf ("erasing buff\n");
+  memset(s, 0, size*sizeof(*s));
+}
+
+
 char* ls(){
   DIR *dirp;
   struct dirent *ep;
@@ -108,38 +114,25 @@ char* ls(){
   return out;
 }
 
-char* filedata(char* filename){
+// returns an open file pointer
+FILE* filep(char* filename){
   char mfn[128];
   strcpy(mfn, "./files/");
   strcat(mfn, filename);
-  printf("%s\n", filename);
+  //printf("%s\n", filename);
   FILE *fp = fopen(mfn, "r");
-  static char out[1024];
 
-
-  if (fp){
-    fgets(out, 1024, fp);
-  }
-  else{
-    perror("file open failure");
-    exit(FAILURE);
-  }
-
-  return out;
-}
-
-void erase(char* s){
-  int n = strlen(s);
-  for (int m = 0; m < n; m++)
-    s[m] = '\0';
+  return fp;
 }
 
 int main(int argc, char** const argv){
+  // INITIAL SETUP---------------------------
   // will hold info about server/port
   struct sockaddr_in address;
   int msg;
   char buff[512] = {0};
   char *howdy = "Howdy, client.";
+  static char lsl[1024] = {0};
 
   if (! argv[1]){
     printf("missing port argument\n");
@@ -155,6 +148,7 @@ int main(int argc, char** const argv){
     printf("Starting server on port %d\n", port);
  
 
+  // MAIN SEND-IT LOOP ------------------------------
   while (1){
     int dport;
     char sport[16];
@@ -166,12 +160,11 @@ int main(int argc, char** const argv){
     // connect to socket and start server
     int sock = initSock(port, &address);
     int servesock = serve(sock, &address);
-    char* argz[4000];
     int i = 0;
     do {
       // read data from accepted connection
       int n = strlen(buff);
-      erase(buff);      
+      erase(buff, strlen(buff));      
       msg = read(servesock, buff, 64);
       printf("Reply from client: %s\n", buff);
       if (strcmp(buff, "0x0") == 0)
@@ -183,8 +176,13 @@ int main(int argc, char** const argv){
       if (i == 0){ // command set
 	strncpy(cmd, buff, strlen(buff));
 	printf("command: %s\n", cmd);
-	if (! strcmp(cmd, "-l"))
-	  strcpy(out, ls());
+	if (! strcmp(cmd, "-l")){
+	  //erase(out, sizeof(out));
+	  //strcpy(out, ls());
+	  if (lsl[0] == 0){
+	    strcpy(lsl, ls());
+	  }
+	}
 	else if (! strcmp(cmd, "-g")){
 	  sendfile = true;
 	}
@@ -192,8 +190,7 @@ int main(int argc, char** const argv){
       else if (i == 1){ // filename set
 	strncpy(filename, buff, strlen(buff));
 	if (sendfile){
-	  erase(out);
-	  strcat(out, filedata(filename));
+	  //erase(out, strlen(out));
 	}
       }
       else if (i == 2){ // port set
@@ -206,20 +203,32 @@ int main(int argc, char** const argv){
 
     printf("command: %s\n", cmd);
     printf("filename: %s \n", filename);
-    printf("port: %s \n", sport);
+    printf("data port: %s \n", sport);
     
 
-
+    // Connect to client on data port
     int datasock = initSock(dport, &address);
     int dssock = serve(datasock, &address);
+    FILE* fp = filep(filename);
+    int lsent;
 
+    if (sendfile){
+      // while we can read data from the file
+      while ((lsent = fread(out, sizeof(char), 1024, fp)) > 0){
+	// send it
+	send(dssock, out, strlen(out), 0);
+      }
+    }
+    else{
+      //strcpy(out, ls());
+      // send ls
+      printf("sending ls...\n %s", lsl);
+      send(dssock, lsl, strlen(lsl), 0);
+    }
 
-    bool data_queued = false;
-    do{
-      // send client the data
-      send(dssock, out, strlen(out), 0);
-    } while (data_queued);
-
+    // empty output buffer
+    erase(out, strlen(out));
+    
     /// end of file transfer
     cleanup(sock);
     cleanup(servesock);
