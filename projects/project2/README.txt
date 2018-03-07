@@ -14,8 +14,6 @@ $	./client <host> <port> <command> [filename] <data_port>
 
 # TLDR:
 # On the server host flip1
-	$ mkdir ./files/
-	$ echo "this is data" > files/data.txt
 	$ make
 	$ ./srv 5666
 

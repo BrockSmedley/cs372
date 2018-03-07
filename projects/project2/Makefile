@@ -1,7 +1,11 @@
-all: srv client
+all: srv client dir
 
 srv: server.cpp
 	g++ -o srv server.cpp
+
+dir:
+	mkdir -p ./files
+	echo "lorem ipsum potato potahto" > ./files/data.txt
 
 client: 
 	echo 'python client.py $$@' > client
