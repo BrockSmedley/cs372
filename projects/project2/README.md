@@ -16,11 +16,13 @@ Make sure your directory and file has public file permissions (`chmod -R 744`).
 
 # TLDR:
 On the server host (e.g. flip1)
-
-	`make`
-	`./srv 5666`
-
+```
+make
+./srv 5666
+```
 On the client host (e.g. flip2)
-	`make`
-	`./client flip1 5666 -l 5777`
-	`./client flip1 5666 -g data.txt 5777`
+```
+make
+./client flip1 5666 -l 5777
+./client flip1 5666 -g data.txt 5777
+```
