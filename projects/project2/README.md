@@ -1,15 +1,17 @@
 Run `make` in this directory to compile the server and create a convenience script for the client
 
 Start the server by running:
-$	./srv <port>
+
+`./srv <port>`
 
 Start the client by running: 
-$	./client <host> <port> <command> [filename] <data_port>
 
->	Note: ./client is simply an alias for `python client.py`
+`./client <host> <port> <command> [filename] <data_port>`
 
-**IMPORTANT**: the server looks for files in a subdirectory "./files/"
-make sure your directory and file has public file permissions (`chmod -R 744`)
+>Note: `./client` is simply an alias for `python client.py`
+
+**IMPORTANT**: the server looks for files in a subdirectory *`./files/`*.
+Make sure your directory and file has public file permissions (`chmod -R 744`).
 
 
 # TLDR:
