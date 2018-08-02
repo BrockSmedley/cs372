@@ -1,4 +1,4 @@
-Run `make` in this directory to compile the server and create a convenience script for the client
+Run `make` in this directory to compile the server and create a convenience script for the client.
 
 Start the server by running:
 
